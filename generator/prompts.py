@@ -27,7 +27,8 @@ def format_activity(activity: dict[str, list[dict]], username: str, max_chars: i
         lines.append(f"Repo: {repo} (https://github.com/{username}/{repo}) - {len(commits)} commits")
         for c in commits:
             msg = c["message"].replace("\n", " / ")
-            lines.append(f"  - {c['date'][:10]}: {msg[:300]}")
+            branch = f" [{c['branch']}]" if c.get("branch") not in ("", None, "main", "master") else ""
+            lines.append(f"  - {c['date'][:10]}{branch}: {msg[:300]}")
     text = "\n".join(lines)
     return text if len(text) <= max_chars else text[:max_chars] + "\n  ... (more commits trimmed)"
 

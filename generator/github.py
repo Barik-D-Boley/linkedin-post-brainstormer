@@ -52,30 +52,54 @@ def _strip_trailers(message: str) -> str:
     return "\n".join(lines).strip()
 
 
+def list_branches(username: str, repo: str) -> list[str]:
+    branches = _get(f"{API}/repos/{username}/{repo}/branches", {"per_page": 100}) or []
+    return [b["name"] for b in branches]
+
+
 def commits_since(username: str, repo: str, since: datetime) -> list[dict]:
+    """Commits since `since` on every branch (so unmerged PR branches count), newest first.
+
+    No author filter: these are the user's own repos, and commits made by Claude Code
+    or other tools on their behalf may not be authored under their GitHub account.
+    """
     since_iso = since.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    raw = _get(
-        f"{API}/repos/{username}/{repo}/commits",
-        {"since": since_iso, "author": username, "per_page": 100},
-    ) or []
-    commits = []
-    for c in raw:
-        message = _strip_trailers(c["commit"]["message"])
-        if message.startswith("Merge"):
-            continue
-        commits.append({
-            "repo": repo,
-            "date": c["commit"]["author"]["date"],
-            "message": message,
-            "url": c.get("html_url", ""),
-        })
+    seen, commits = set(), []
+    for branch in list_branches(username, repo) or [None]:
+        params = {"since": since_iso, "per_page": 100}
+        if branch:
+            params["sha"] = branch
+        for c in _get(f"{API}/repos/{username}/{repo}/commits", params) or []:
+            if c["sha"] in seen:
+                continue
+            seen.add(c["sha"])
+            message = _strip_trailers(c["commit"]["message"])
+            if message.startswith("Merge"):
+                continue
+            commits.append({
+                "repo": repo,
+                "branch": branch or "",
+                "date": c["commit"]["author"]["date"],
+                "message": message,
+                "url": c.get("html_url", ""),
+            })
+    commits.sort(key=lambda c: c["date"], reverse=True)
     return commits
+
+
+def _pushed_since(repo: dict, since: datetime) -> bool:
+    pushed = repo.get("pushed_at")
+    if not pushed:
+        return True
+    return datetime.fromisoformat(pushed.replace("Z", "+00:00")) >= since
 
 
 def recent_activity(username: str, since: datetime) -> dict[str, list[dict]]:
     """Commits since `since`, grouped by repo. Repos with no commits are left out."""
     activity = {}
     for repo in list_repos(username):
+        if not _pushed_since(repo, since):  # saves API calls on quiet repos
+            continue
         commits = commits_since(username, repo["name"], since)
         if commits:
             activity[repo["name"]] = commits

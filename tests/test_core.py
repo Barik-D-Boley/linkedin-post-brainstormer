@@ -110,23 +110,37 @@ def test_repos_skip_forks_and_archived(monkeypatch):
     assert [r["name"] for r in github.list_repos("me")] == ["keep"]
 
 
-def test_commits_skip_merges_and_send_since(monkeypatch):
-    seen = {}
+def test_commits_all_branches_dedupe_skip_merges(monkeypatch):
+    seen_params = []
+    shared = {"sha": "s1", "commit": {"message": "Fix navbar\n\nCo-Authored-By: Claude <x>",
+                                      "author": {"date": "2026-11-18T00:00:00Z"}}, "html_url": "u1"}
+    feature = {"sha": "s2", "commit": {"message": "Add parser", "author": {"date": "2026-11-19T00:00:00Z"}},
+               "html_url": "u2"}
+    merge = {"sha": "s3", "commit": {"message": "Merge branch 'x'", "author": {"date": "2026-11-19T00:00:00Z"}},
+             "html_url": "u3"}
 
     def get(url, headers, params, timeout):
-        seen.update(params)
-        return _response(body=[
-            {"commit": {"message": "Fix navbar\n\nlong body", "author": {"date": "2026-11-19T00:00:00Z"}},
-             "html_url": "u1"},
-            {"commit": {"message": "Merge branch 'x'", "author": {"date": "2026-11-19T00:00:00Z"}},
-             "html_url": "u2"},
-        ])
+        if url.endswith("/branches"):
+            return _response(body=[{"name": "main"}, {"name": "claude/feature"}])
+        seen_params.append(dict(params))
+        return _response(body=[shared, merge] if params["sha"] == "main" else [feature, shared])
     monkeypatch.setattr(github.requests, "get", get)
+
     since = datetime(2026, 11, 13, 10, 0, tzinfo=timezone.utc)
     commits = github.commits_since("me", "repo", since)
-    assert [c["message"] for c in commits] == ["Fix navbar\n\nlong body"]
-    assert seen["since"] == "2026-11-13T10:00:00Z"
-    assert seen["author"] == "me"
+    assert [c["message"] for c in commits] == ["Add parser", "Fix navbar"]
+    assert commits[0]["branch"] == "claude/feature"
+    assert all(p["since"] == "2026-11-13T10:00:00Z" and "author" not in p for p in seen_params)
+
+
+def test_quiet_repos_skipped(monkeypatch):
+    monkeypatch.setattr(github, "list_repos", lambda u: [
+        {"name": "old", "pushed_at": "2026-01-01T00:00:00Z"},
+        {"name": "new", "pushed_at": "2026-11-20T00:00:00Z"}])
+    called = []
+    monkeypatch.setattr(github, "commits_since", lambda u, r, s: called.append(r) or [{"x": 1}])
+    activity = github.recent_activity("me", datetime(2026, 11, 13, tzinfo=timezone.utc))
+    assert called == ["new"] and list(activity) == ["new"]
 
 
 def test_rate_limit_message(monkeypatch):

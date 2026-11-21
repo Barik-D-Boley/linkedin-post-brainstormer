@@ -98,8 +98,11 @@ Pulls what I've worked on since my last post.
 **Behavior:**
 - List my public repos: `GET /users/{username}/repos?type=owner&per_page=100`.
   - Skip forks and archived repos.
-- For each repo, get commits since the last post date: `GET /repos/{username}/{repo}/commits?since={ISO date}&author={username}`.
-  - Skip merge commits (messages starting with "Merge").
+- Skip repos whose `pushed_at` is older than the last post date (saves API calls).
+- For each remaining repo, list its branches, then get commits since the last post date on **every branch**: `GET /repos/{username}/{repo}/commits?since={ISO date}&sha={branch}`. Unmerged PR branches (e.g. from Claude Code) count.
+  - No author filter: commits made by Claude Code or other tools may not be authored under my account.
+  - Remove duplicate commits that appear on more than one branch.
+  - Skip merge commits (messages starting with "Merge") and strip trailer lines like `Co-Authored-By`.
 - For each commit, keep the repo name, date, commit message (full, not just the first line) and URL.
 - Group the results by repo and print a short summary, for example:
   `portfolio-website: 12 commits | python-toolkit: 3 commits`.
@@ -108,7 +111,7 @@ Pulls what I've worked on since my last post.
 **Acceptance criteria:**
 - [ ] Works without a GitHub token.
 - [ ] Forks, archived repos and merge commits are left out.
-- [ ] Only commits after the last post date are included.
+- [ ] Only commits after the last post date are included, from all branches, without duplicates.
 - [ ] Hitting the rate limit or having no internet gives a clear message instead of a crash.
 
 ---
