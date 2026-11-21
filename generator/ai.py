@@ -18,19 +18,25 @@ def configure(timeout_seconds: int) -> None:
     TIMEOUT = timeout_seconds
 
 
+def _claude_path() -> str | None:
+    # Use the full path so Windows can run claude.cmd / claude.exe without a shell.
+    return shutil.which("claude")
+
+
 def check_installed() -> None:
-    if shutil.which("claude") is None:
+    if _claude_path() is None:
         raise UserError(
             "Claude Code isn't installed (the `claude` command wasn't found).\n"
             "Install it from https://claude.com/claude-code, run `claude` once, "
-            "and sign in with your Claude Pro account."
+            "and sign in with your Claude Pro account.\n"
+            "If you just installed it, close this terminal and open a new one so it can find `claude`."
         )
 
 
 def ask(prompt: str) -> str:
     try:
         result = subprocess.run(
-            ["claude", "-p"],
+            [_claude_path() or "claude", "-p"],
             input=prompt,
             capture_output=True,
             text=True,
