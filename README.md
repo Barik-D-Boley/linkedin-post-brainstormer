@@ -2,6 +2,8 @@
 
 A weekly Python tool that turns my GitHub activity and what I've learned into LinkedIn post drafts. I edit each draft until I'm happy with it, and the tool gets it ready to post.
 
+> **Note:** I now run this workflow as a weekly Claude scheduled task, so I can answer the questions and revise drafts from my phone. This repo is a complete, working v1 of the tool.
+
 ## Why
 
 I want to post on LinkedIn consistently about what I'm building and learning, but writing a post from scratch every week takes time and it's easy to skip. This tool does the first draft so all I have to do each week is react and edit.
@@ -85,4 +87,4 @@ python -m pytest
 
 ## Status
 
-v1 built and tested with mocks; first real run pending. Detailed specs for each feature are in [`features.md`](features.md).
+v1 complete and tested. Detailed specs for each feature are in [`features.md`](features.md).
