@@ -46,23 +46,36 @@ Every time I finish a post, the tool saves both its original draft and my final 
 
 ## Setup
 
-> Will be filled in once v1 is built.
+1. Install Python 3.10+ and [Claude Code](https://claude.com/claude-code). Run `claude` once and sign in with your Claude Pro account.
+2. Clone this repo and install the dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Set your GitHub username in `config.json` (or delete the file and the script will ask).
+4. Run it:
+   ```
+   python run.py
+   ```
 
-1. Install Python 3 and Claude Code, and sign in to Claude Code with a Claude Pro account.
-2. Clone this repo and install the dependencies.
-3. Set your GitHub username in the config.
-4. Run `python run.py`.
+Optional: set a `GITHUB_TOKEN` environment variable for a higher GitHub rate limit. To edit drafts in a specific editor, set `EDITOR` (e.g. `code --wait`); otherwise your system's default text editor opens.
+
+Your post history is saved in `data/history.json`, which is git-ignored.
+
+### Tests
+```
+python -m pytest
+```
 
 ## Roadmap
 
 ### v1: Core weekly flow
-- [ ] Post history file (last post date, past drafts and finals)
-- [ ] Pull commits from public repos since the last post
-- [ ] Weekly reflection questions
-- [ ] Suggest 2–3 post angles
-- [ ] Draft and revise loop
-- [ ] Image or video suggestion
-- [ ] Copy to clipboard and open LinkedIn
+- [x] Post history file (last post date, past drafts and finals)
+- [x] Pull commits from public repos since the last post
+- [x] Weekly reflection questions
+- [x] Suggest 2–3 post angles
+- [x] Draft and revise loop
+- [x] Image or video suggestion
+- [x] Copy to clipboard and open LinkedIn
 
 ### v2: Improvements
 - [ ] Use past finished posts as voice examples
@@ -72,4 +85,4 @@ Every time I finish a post, the tool saves both its original draft and my final 
 
 ## Status
 
-Planning. Detailed specs for each feature are in [`features.md`](features.md).
+v1 built and tested with mocks; first real run pending. Detailed specs for each feature are in [`features.md`](features.md).
